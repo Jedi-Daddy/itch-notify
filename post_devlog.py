@@ -70,17 +70,16 @@ def post_to_discord(entry):
     if len(description) > DISCORD_MAX_LEN:
         description = description[: DISCORD_MAX_LEN - 3] + "..."
 
-    payload = {
-        "embeds": [
-            {
-                "title": entry["title"][:256],
-                "url": entry["link"],
-                "description": description or "(нет описания)",
-                "color": 0xFA5C5C,  # itch.io-ish red
-                "footer": {"text": "Новый дев-лог на itch.io"},
-            }
-        ]
+    embed = {
+        "title": (entry["title"] or "Новый дев-лог")[:256],
+        "description": description or "(нет описания)",
+        "color": 0xFA5C5C,
+        "footer": {"text": "Новый дев-лог на itch.io"},
     }
+    if entry["link"]:
+        embed["url"] = entry["link"]
+
+    payload = {"embeds": [embed]}
 
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
@@ -92,9 +91,14 @@ def post_to_discord(entry):
         },
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        if resp.status not in (200, 204):
-            raise RuntimeError(f"Discord webhook вернул статус {resp.status}")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            if resp.status not in (200, 204):
+                raise RuntimeError(f"Discord webhook вернул статус {resp.status}")
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        print(f"Discord ответил ошибкой {e.code}: {body}", file=sys.stderr)
+        raise
 
 
 def main():
