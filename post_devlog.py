@@ -86,7 +86,10 @@ def post_to_discord(entry):
     req = urllib.request.Request(
         WEBHOOK_URL,
         data=data,
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "itch-devlog-bot/1.0 (+https://github.com)",
+        },
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=30) as resp:
