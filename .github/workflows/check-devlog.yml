@@ -1,0 +1,36 @@
+name: Check itch.io devlog and post to Discord
+
+on:
+  schedule:
+    # раз в 15 минут (можно изменить, см. https://crontab.guru)
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}  # позволяет запустить вручную из вкладки Actions
+
+permissions:
+  contents: write  # нужно, чтобы коммитить обновлённый state.json обратно в репо
+
+jobs:
+  check-and-post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run devlog checker
+        env:
+          FEED_URL: ${{ secrets.FEED_URL }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python post_devlog.py
+
+      - name: Commit updated state
+        run: |
+          git config user.name "devlog-bot"
+          git config user.email "devlog-bot@users.noreply.github.com"
+          git add state.json
+          git diff --cached --quiet || git commit -m "Update last posted devlog id [skip ci]"
+          git push
